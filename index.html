@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<title>Icon Editor</title>
+<style>
+html {
+	height: 100%;
+	width: 100%;
+
+	background:
+	 repeating-linear-gradient( 45deg, rgba(255,255,255,0) 0 4px, rgba(255,0,0,0.05) 4px 8px),
+	 repeating-linear-gradient(-45deg, rgba(255,255,255,0) 0 4px, rgba(0,0,255,0.05) 4px 8px);
+}
+.dark {
+	background:
+	 repeating-linear-gradient( 45deg, rgba(0,0,0,0.4) 0 20px, rgba(55,0,0,0.4) 20px 40px),
+	 repeating-linear-gradient(-45deg, rgba(0,0,0,1.0) 0 20px, rgba(0,0,55,1.0) 20px 40px);
+}
+canvas {
+	border: solid 1px #888;
+}
+.hbox {
+	display: inline-block;
+	vertical-align: top;
+}
+#palette button {
+	display: block;
+	width: 70px;
+    text-shadow: 1px 0 2px white, -1px 0 2px white, 0 -1px 2px white, 0 1px 2px white;
+}
+#selected {
+	width: 50px;
+	height: 50px;
+	border: solid 10px;
+	border-color: black;
+}
+</style>
+</head>
+<body>
+
+<div class=hbox>
+<div id=palette></div>
+<div id=selected>&nbsp;</div>
+</div>
+<div class=hbox>
+<canvas id=editor   width=300 height=300></canvas>
+</div>
+<div class=hbox>
+<canvas class=preview width=16  height=16 ></canvas>
+<canvas class=preview width=24  height=24 ></canvas>
+<canvas class=preview width=32  height=32 ></canvas>
+<canvas class=preview width=48  height=48 ></canvas>
+<canvas class=preview width=64  height=64 ></canvas>
+<br>
+<button id=dark>Dark</button>
+<button id=lite>Lite</button>
+</div>
+
+<script>
+function $(s) { return document.querySelector(s); }
+function $$(s) { return document.querySelectorAll(s); }
+
+const floor = Math.floor, min = Math.min, max = Math.max;
+
+let RES = 16;
+let IMAGE = Array(RES * RES).fill().map(() => "rgba(0,0,0,0)");
+
+function draw(can, borderStyle) {
+	let ctx = can.getContext('2d');
+	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+	let dx = ctx.canvas.width / RES;
+	let dy = ctx.canvas.height / RES;
+	if (borderStyle) ctx.strokeStyle = borderStyle;
+	for (let index = 0; index < RES * RES; index += 1) {
+		let i = index % RES;
+		let j = floor(index / RES);
+		ctx.fillStyle = IMAGE[index];
+		ctx.fillRect(i * dx, j * dy, dx, dy);
+		if (borderStyle) {
+			ctx.beginPath();
+			ctx.moveTo( i   *dx, (j+1)*dy);
+			ctx.lineTo( i   *dx,  j   *dy);
+			ctx.lineTo((i+1)*dx,  j   *dy);
+			ctx.setLineDash([2,2]);
+			ctx.stroke();
+		}
+	}
+
+}
+
+for (cc of "black|white|red|green|blue|cyan|magenta|yellow|clear/rgba(0,0,0,0)".split("|")) {
+	let button = $("#palette").appendChild(document.createElement("button"));
+	cc = cc.split('/');
+	let label = cc.shift();
+	let color = cc.shift() || label;
+	button.style.backgroundColor = color;
+	button.innerText = label;
+	button.addEventListener('click', e => {
+		let c = e.target.style.backgroundColor;
+		$("#selected").style.backgroundColor = c;
+	});
+	button.addEventListener('contextmenu', e => {
+		let c = e.target.style.backgroundColor;
+		$("#selected").style.borderColor = c;
+	});
+}
+$("#selected").style.borderColor = "rgba(0,0,0,0)";
+$("#selected").style.backgroundColor = "white";
+
+document.oncontextmenu = e => false;
+$("#editor").addEventListener('mousedown', paint);
+$("#editor").addEventListener('mousemove', paint);
+
+function paint(e) {
+	if (e) {
+		e.stopImmediatePropagation();
+		let i = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
+		let j = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
+		let index = i + j * RES;
+		if (e.which === 1) {
+			// left click
+			IMAGE[index] = $("#selected").style.backgroundColor;
+		} else if (e.which === 3) {
+			IMAGE[index] = $("#selected").style.borderColor;
+		}
+	}
+	draw($("#editor"), "#888");
+	for (can of $$(".preview")) draw(can);
+	return false;
+}
+
+$("#dark").addEventListener('click', e => $("html").classList.add("dark"));
+$("#lite").addEventListener('click', e => $("html").classList.remove("dark"));
+
+paint();
+
+</script>
+</body>
+</html>
