@@ -3,18 +3,14 @@
 <head>
 <title>Icon Editor</title>
 <style>
+	/* Icon editor */
+
+/* ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'
+*/
+
 html {
 	height: 100%;
 	width: 100%;
-
-	background:
-	 repeating-linear-gradient( 45deg, rgba(255,255,255,0) 0 4px, rgba(255,0,0,0.05) 4px 8px),
-	 repeating-linear-gradient(-45deg, rgba(255,255,255,0) 0 4px, rgba(0,0,255,0.05) 4px 8px);
-}
-.dark {
-	background:
-	 repeating-linear-gradient( 45deg, rgba(0,0,0,0.4) 0 20px, rgba(55,0,0,0.4) 20px 40px),
-	 repeating-linear-gradient(-45deg, rgba(0,0,0,1.0) 0 20px, rgba(0,0,55,1.0) 20px 40px);
 }
 canvas {
 	border: solid 1px #888;
@@ -52,8 +48,13 @@ canvas {
 <canvas class=preview width=48  height=48 ></canvas>
 <canvas class=preview width=64  height=64 ></canvas>
 <br>
-<button id=dark>Dark</button>
-<button id=lite>Lite</button>
+<button id=dark>dark</button>
+<button id=lite>lite</button>
+<button id=back>back</button>
+<br>
+<input id=name></input>
+<select id="library"></select>
+
 </div>
 
 <script>
@@ -88,7 +89,7 @@ function draw(can, borderStyle) {
 
 }
 
-for (cc of "black|white|red|green|blue|cyan|magenta|yellow|clear/rgba(0,0,0,0)".split("|")) {
+for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgba(0,0,0,0)".split("|")) {
 	let button = $("#palette").appendChild(document.createElement("button"));
 	cc = cc.split('/');
 	let label = cc.shift();
@@ -105,7 +106,7 @@ for (cc of "black|white|red|green|blue|cyan|magenta|yellow|clear/rgba(0,0,0,0)".
 	});
 }
 $("#selected").style.borderColor = "rgba(0,0,0,0)";
-$("#selected").style.backgroundColor = "white";
+$("#selected").style.backgroundColor = "black";
 
 document.oncontextmenu = e => false;
 $("#editor").addEventListener('mousedown', paint);
@@ -113,6 +114,8 @@ $("#editor").addEventListener('mousemove', paint);
 
 function paint(e) {
 	if (e) {
+		if (e.which === 0) return; // mouseover with no mouse down
+
 		e.stopImmediatePropagation();
 		let i = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
 		let j = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
@@ -126,12 +129,58 @@ function paint(e) {
 	}
 	draw($("#editor"), "#888");
 	for (can of $$(".preview")) draw(can);
+
+	let name = $("#name").value;
+	let library = JSON.parse(localStorage.library || '{}');
+	if (name.length) library[name] = IMAGE;
+	$("#library").innerHTML = "";
+	for (entry in library) {
+		let option = $("#library").appendChild(document.createElement("option"));
+		option.innerText = entry;
+		option.name = entry;
+		if (entry === name) option.selected = true;
+	}
+	localStorage.library = JSON.stringify(library);
+
 	return false;
 }
 
-$("#dark").addEventListener('click', e => $("html").classList.add("dark"));
-$("#lite").addEventListener('click', e => $("html").classList.remove("dark"));
+$("#library").addEventListener('change', e => {
+	let library = JSON.parse(localStorage.library || '{}');
+	let opt = $("#library").options[$("#library").selectedIndex];
+	$("#name").value = opt.name;
+	IMAGE = library[opt.name];
+	paint();
+});
 
+for (let button of $$("button")) {
+	if (window[button.id]) {
+		button.addEventListener('click', e => window[e.target.id](e));
+		button.addEventListener('contextmenu', e => window[e.target.id](e));
+	}
+}
+
+function lite(e) {
+	$("html").style.background = `
+	 repeating-linear-gradient( 45deg, rgba(255,255,255,0) 0 4px, rgba(255,0,0,0.05) 4px 8px),
+	 repeating-linear-gradient(-45deg, rgba(255,255,255,0) 0 4px, rgba(0,0,255,0.05) 4px 8px)`;
+}
+
+function dark(e) {
+	$("html").style.background = `
+	 repeating-linear-gradient( 45deg, rgba(0,0,0,0.4) 0 20px, rgba(55,0,0,0.4) 20px 40px),
+	 repeating-linear-gradient(-45deg, rgba(0,0,0,1.0) 0 20px, rgba(0,0,55,1.0) 20px 40px)`;
+}
+
+function back(e) {
+	if (e.which === 1) {
+		$("html").style.background = $("#selected").style.backgroundColor;
+	} else if (e.which === 3) {
+		$("html").style.background = $("#selected").style.borderColor;
+	}
+}
+
+lite();
 paint();
 
 </script>
