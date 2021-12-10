@@ -108,7 +108,7 @@ for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgb
 $("#selected").style.borderColor = "rgba(0,0,0,0)";
 $("#selected").style.backgroundColor = "black";
 
-document.oncontextmenu = e => false;
+document.oncontextmenu = e => e.target.className === 'preview';
 $("#editor").addEventListener('mousedown', paint);
 $("#editor").addEventListener('mousemove', paint);
 
