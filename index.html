@@ -11,6 +11,10 @@
 html {
 	height: 100%;
 	width: 100%;
+    font-family: georgia;
+}
+body {
+	margin: 50px;
 }
 canvas {
 	border: solid 1px #888;
@@ -24,6 +28,13 @@ canvas {
 	width: 70px;
     text-shadow: 1px 0 2px white, -1px 0 2px white, 0 -1px 2px white, 0 1px 2px white;
 }
+span {
+	margin-bottom: 20px;
+	padding: 3px 5px 3px 12px;
+	letter-spacing: 5px;
+	border: solid 1px black;
+	background: white;
+}
 #selected {
 	width: 50px;
 	height: 50px;
@@ -34,13 +45,22 @@ canvas {
 </head>
 <body>
 
+<div>
+<span>icon editor</span>
+</div>
+<br>
+
+<div>
+
 <div class=hbox>
 <div id=palette></div>
 <div id=selected>&nbsp;</div>
 </div>
+
 <div class=hbox>
 <canvas id=editor   width=300 height=300></canvas>
 </div>
+
 <div class=hbox>
 <canvas class=preview width=16  height=16 ></canvas>
 <canvas class=preview width=24  height=24 ></canvas>
@@ -54,6 +74,9 @@ canvas {
 <br>
 <input id=name></input>
 <select id="library"></select>
+<br>
+<button id=fill>fill</button>
+</div>
 
 </div>
 
@@ -65,13 +88,14 @@ const floor = Math.floor, min = Math.min, max = Math.max;
 
 let RES = 16;
 let IMAGE = Array(RES * RES).fill().map(() => "rgba(0,0,0,0)");
+let MOUSEI, MOUSEJ;
+
 
 function draw(can, borderStyle) {
 	let ctx = can.getContext('2d');
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	let dx = ctx.canvas.width / RES;
 	let dy = ctx.canvas.height / RES;
-	if (borderStyle) ctx.strokeStyle = borderStyle;
 	for (let index = 0; index < RES * RES; index += 1) {
 		let i = index % RES;
 		let j = floor(index / RES);
@@ -83,7 +107,12 @@ function draw(can, borderStyle) {
 			ctx.lineTo( i   *dx,  j   *dy);
 			ctx.lineTo((i+1)*dx,  j   *dy);
 			ctx.setLineDash([2,2]);
+			ctx.strokeStyle = borderStyle;
 			ctx.stroke();
+			if(i === MOUSEI && j === MOUSEJ) {
+				ctx.strokeStyle = 'red';
+				ctx.strokeRect(i * dx, j * dy, dx, dy);
+			}
 		}
 	}
 
@@ -111,21 +140,26 @@ $("#selected").style.backgroundColor = "black";
 document.oncontextmenu = e => e.target.className === 'preview';
 $("#editor").addEventListener('mousedown', paint);
 $("#editor").addEventListener('mousemove', paint);
+$("#editor").addEventListener('mouseleave', e => {
+	MOUSEI = MOUSEJ = null;
+	draw($("#editor"), "#888")
+});
 
 function paint(e) {
 	if (e) {
-		if (e.which === 0) return; // mouseover with no mouse down
+		MOUSEI = floor(RES * e.offsetX / e.target.width);
+		MOUSEJ = floor(RES * e.offsetY / e.target.height);
+
+		if (e.which === 0) {
+			draw($("#editor"), "#888");
+			return; // mouseover with no mouse buttons down
+		}
 
 		e.stopImmediatePropagation();
 		let i = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
 		let j = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
 		let index = i + j * RES;
-		if (e.which === 1) {
-			// left click
-			IMAGE[index] = $("#selected").style.backgroundColor;
-		} else if (e.which === 3) {
-			IMAGE[index] = $("#selected").style.borderColor;
-		}
+		IMAGE[index] = paintColor(e) || IMAGE[index];
 	}
 	draw($("#editor"), "#888");
 	for (can of $$(".preview")) draw(can);
@@ -173,11 +207,20 @@ function dark(e) {
 }
 
 function back(e) {
+	$("html").style.background = paintColor(e);
+}
+
+function paintColor(e) {
 	if (e.which === 1) {
-		$("html").style.background = $("#selected").style.backgroundColor;
+		return $("#selected").style.backgroundColor;
 	} else if (e.which === 3) {
-		$("html").style.background = $("#selected").style.borderColor;
+		return $("#selected").style.borderColor;
 	}
+}
+
+function fill(e) {
+	IMAGE = IMAGE.map(c => paintColor(e));
+	paint();
 }
 
 lite();
