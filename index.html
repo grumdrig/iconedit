@@ -91,7 +91,8 @@ background
 <button id=lite>lite</button>
 <button id=back>back</button>
 <br>
-action
+<br>
+<button id=neww>new</button>
 <button id=fill>fill/clear</button>
 
 </div>
@@ -249,7 +250,7 @@ function update() {
 	}
 	if (!something) {
 		let option = $("#library").insertBefore(document.createElement("option"), $("#library").firstChild);
-		option.innerText = " -- Load -- ";
+		option.innerHTML = "Load &darr;";
 		option.selected = true;
 	}
 	localStorage.library = JSON.stringify(library);
@@ -298,6 +299,14 @@ function paintColor(e) {
 	} else if (e.which === 3) {
 		return $("#selected").style.borderColor;
 	}
+}
+
+// actions
+
+function neww(e) {
+	$("#name").value = "";
+	IMAGE = IMAGE.map(c => "rgba(0,0,0,0)");
+	update();
 }
 
 function fill(e) {
