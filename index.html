@@ -5,13 +5,10 @@
 <style>
 	/* Icon editor */
 
-/* ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'
-*/
-
 html {
 	height: 100%;
 	width: 100%;
-    font-family: georgia;
+    font-family: sans-serif;
 }
 body {
 	margin: 50px;
@@ -28,6 +25,11 @@ canvas {
 	width: 70px;
     text-shadow: 1px 0 2px white, -1px 0 2px white, 0 -1px 2px white, 0 1px 2px white;
 }
+button.selected {
+	background-color: "yellow";
+	border-width: 2px;
+	font-weight: bold;
+}
 span {
 	margin-bottom: 20px;
 	padding: 3px 5px 3px 12px;
@@ -41,16 +43,31 @@ span {
 	border: solid 10px;
 	border-color: black;
 }
+.smaller {
+	font-size: 14px;
+}
+#tools button {
+	display: block;
+}
 </style>
 </head>
 <body>
 
 <div>
 <span>icon editor</span>
+&middot
+<input id=name></input>
+<select id="library"></select>
+<button id="delet">delete</button>
 </div>
 <br>
 
 <div>
+
+<div class=hbox>
+<div id=tools></div>
+</div>
+
 
 <div class=hbox>
 <div id=palette></div>
@@ -61,22 +78,21 @@ span {
 <canvas id=editor   width=300 height=300></canvas>
 </div>
 
-<div class=hbox>
+<div class="hbox smaller">
 <canvas class=preview width=16  height=16 ></canvas>
 <canvas class=preview width=24  height=24 ></canvas>
 <canvas class=preview width=32  height=32 ></canvas>
 <canvas class=preview width=48  height=48 ></canvas>
 <canvas class=preview width=64  height=64 ></canvas>
 <br>
+<br>
+background
 <button id=dark>dark</button>
 <button id=lite>lite</button>
 <button id=back>back</button>
 <br>
-<input id=name></input>
-<select id="library"></select>
-<br>
-<button id=fill>fill</button>
-</div>
+action
+<button id=fill>fill/clear</button>
 
 </div>
 
@@ -89,6 +105,7 @@ const floor = Math.floor, min = Math.min, max = Math.max;
 let RES = 16;
 let IMAGE = Array(RES * RES).fill().map(() => "rgba(0,0,0,0)");
 let MOUSEI, MOUSEJ;
+let TOOL = 'paint';
 
 
 function draw(can, borderStyle) {
@@ -118,6 +135,16 @@ function draw(can, borderStyle) {
 
 }
 
+// Button default is to call the function whose name matches the id
+
+for (let button of $$("button")) {
+	if (window[button.id]) {
+		button.addEventListener('click', e => window[e.target.id](e));
+		button.addEventListener('contextmenu', e => window[e.target.id](e));
+	}
+}
+
+// Create palette
 for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgba(0,0,0,0)".split("|")) {
 	let button = $("#palette").appendChild(document.createElement("button"));
 	cc = cc.split('/');
@@ -137,62 +164,112 @@ for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgb
 $("#selected").style.borderColor = "rgba(0,0,0,0)";
 $("#selected").style.backgroundColor = "black";
 
+
+// Create tools
+for (tt of "paint|flood".split("|")) {
+	let button = $("#tools").appendChild(document.createElement("button"));
+	button.innerText = tt;
+	button.id = tt;
+	button.addEventListener('click', e => {
+		TOOL = e.target.id;
+		for (let b of $$("#tools button")) {
+			b.classList[(b.id === TOOL) ? "add" : "remove"]("selected");
+		}
+	});
+	if (button.id == TOOL) button.classList.add("selected");
+}
+
+// Handle mouse
 document.oncontextmenu = e => e.target.className === 'preview';
-$("#editor").addEventListener('mousedown', paint);
-$("#editor").addEventListener('mousemove', paint);
+$("#editor").addEventListener('mousedown', tool);
+$("#editor").addEventListener('mousemove', tool);
 $("#editor").addEventListener('mouseleave', e => {
 	MOUSEI = MOUSEJ = null;
-	draw($("#editor"), "#888")
+	draw($("#editor"), "#888");
 });
 
-function paint(e) {
-	if (e) {
-		MOUSEI = floor(RES * e.offsetX / e.target.width);
-		MOUSEJ = floor(RES * e.offsetY / e.target.height);
+// Tools
 
-		if (e.which === 0) {
-			draw($("#editor"), "#888");
-			return; // mouseover with no mouse buttons down
-		}
+function tool(e) {
+	e.stopImmediatePropagation();
 
-		e.stopImmediatePropagation();
-		let i = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
-		let j = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
-		let index = i + j * RES;
-		IMAGE[index] = paintColor(e) || IMAGE[index];
+	MOUSEI = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
+	MOUSEJ = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
+
+	if (e.which === 0) {
+		draw($("#editor"), "#888");
+		return; // mouseover with no mouse buttons down
 	}
+
+	window[TOOL](e);
+	update();
+	return false;
+}
+
+
+function paint(e) {
+	let index = MOUSEI + MOUSEJ * RES;
+	IMAGE[index] = paintColor(e) || IMAGE[index];
+}
+
+function flood(e, i, j, c) {
+	if (i === undefined) {
+		i = MOUSEI;
+		j = MOUSEJ;
+		c = IMAGE[i + j * RES];
+		if (paintColor(e) === c) return; // else infinite recursion
+	}
+	if (c === IMAGE[i + j * RES]) {
+		IMAGE[i + j * RES] = paintColor(e);
+		if (i < RES - 1) flood(e, i + 1, j, c);
+		if (j < RES - 1) flood(e, i, j + 1, c);
+		if (i > 0)       flood(e, i - 1, j, c);
+		if (j > 0)       flood(e, i, j - 1, c);
+	}
+}
+
+
+function update() {
 	draw($("#editor"), "#888");
-	for (can of $$(".preview")) draw(can);
+	for (can of $$(".preview")) { draw(can); }
 
 	let name = $("#name").value;
 	let library = JSON.parse(localStorage.library || '{}');
 	if (name.length) library[name] = IMAGE;
 	$("#library").innerHTML = "";
+	let something = false;
 	for (entry in library) {
 		let option = $("#library").appendChild(document.createElement("option"));
 		option.innerText = entry;
 		option.name = entry;
-		if (entry === name) option.selected = true;
+		if (entry === name) something = option.selected = true;
+	}
+	if (!something) {
+		let option = $("#library").insertBefore(document.createElement("option"), $("#library").firstChild);
+		option.innerText = " -- Load -- ";
+		option.selected = true;
 	}
 	localStorage.library = JSON.stringify(library);
-
-	return false;
 }
+
+$("#name").addEventListener("change", update);
 
 $("#library").addEventListener('change', e => {
 	let library = JSON.parse(localStorage.library || '{}');
 	let opt = $("#library").options[$("#library").selectedIndex];
 	$("#name").value = opt.name;
 	IMAGE = library[opt.name];
-	paint();
+	update();
 });
 
-for (let button of $$("button")) {
-	if (window[button.id]) {
-		button.addEventListener('click', e => window[e.target.id](e));
-		button.addEventListener('contextmenu', e => window[e.target.id](e));
-	}
+function delet(e) {
+	let library = JSON.parse(localStorage.library || '{}');
+	delete library[$("#name").value];
+	localStorage.library = JSON.stringify(library);
+	$("#name").value = "";
+	update();
 }
+
 
 function lite(e) {
 	$("html").style.background = `
@@ -220,11 +297,11 @@ function paintColor(e) {
 
 function fill(e) {
 	IMAGE = IMAGE.map(c => paintColor(e));
-	paint();
+	update();
 }
 
 lite();
-paint();
+update();
 
 </script>
 </body>
