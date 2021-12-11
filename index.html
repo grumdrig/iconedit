@@ -219,7 +219,7 @@ $("#selected").style.backgroundColor = "black";
 
 
 // Create tools
-for (tt of "paint/default|flood/move".split("|")) {
+for (tt of "paint/default|flood/move|replace/cell".split("|")) {
 	let button = $("#tools").appendChild(document.createElement("button"));
 	[tt,cc] = tt.split('/');
 	button.innerText = tt;
@@ -284,6 +284,10 @@ function flood(e, i, j, c) {
 	}
 }
 
+function replace(e) {
+	let old = IMAGE[MOUSEI + RES * MOUSEJ];
+	IMAGE = IMAGE.map(c => c == old ? paintColor(e) : c);
+}
 
 function update() {
 	draw($("#editor"), "#888");
