@@ -99,6 +99,10 @@ span {
 <br>
 <button id=neww>new</button>
 <button id=fill>fill/clear</button>
+<br>
+<br>
+<button id=undo>undo</button>
+<button id=redo>redo</button>
 
 </div>
 
@@ -112,6 +116,8 @@ let RES = 16;
 let IMAGE = Array(RES * RES).fill().map(() => "rgba(0,0,0,0)");
 let MOUSEI, MOUSEJ;
 let TOOL = 'paint';
+let HISTORY = [];
+let FUTURE = [];
 
 
 function draw(can, borderStyle) {
@@ -151,6 +157,7 @@ for (let button of $$("button")) {
 }
 
 // Create palette
+
 for (pal of $$("palette button")) {
 	pal.addEventListener('click', e => {
 		let c = e.target.style.backgroundColor;
@@ -198,25 +205,8 @@ for (ccc of P.split("\n")) {
 	}
 }
 
-if (false) for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgba(0,0,0,0)".split("|")) {
-	let button = $("#palette").appendChild(document.createElement("button"));
-	cc = cc.split('/');
-	let label = cc.shift();
-	let color = cc.shift() || label;
-	button.style.backgroundColor = color;
-	button.innerText = label;
-	button.addEventListener('click', e => {
-		let c = e.target.style.backgroundColor;
-		$("#selected").style.backgroundColor = c;
-	});
-	button.addEventListener('contextmenu', e => {
-		let c = e.target.style.backgroundColor;
-		$("#selected").style.borderColor = c;
-	});
-}
 $("#selected").style.borderColor = "rgba(0,0,0,0)";
 $("#selected").style.backgroundColor = "black";
-
 
 // Create tools
 for (tt of "paint/default|flood/move|replace/cell".split("|")) {
@@ -235,6 +225,50 @@ for (tt of "paint/default|flood/move|replace/cell".split("|")) {
 	if (button.id == TOOL) button.classList.add("selected");
 }
 
+// Undo/redo
+
+function eq(a1,a2) { return !(a1 < a2 || a2 < a1); }
+
+function updo() {
+	$("#undo").innerText = `undo (${HISTORY.length})`;
+	$("#redo").innerText = `redo (${FUTURE.length})`;
+}
+
+function maybeadd(array, element) {
+	if (!array.length || !eq(array[array.length - 1], element)) {
+		array.push(element.slice());
+		return true;
+	}
+}
+
+function remember() {
+	if (maybeadd(HISTORY, IMAGE)) {
+		FUTURE = [];
+		updo();
+	}
+}
+
+function undo(e) {
+	while (HISTORY.length && eq(HISTORY[HISTORY.length - 1], IMAGE)) HISTORY.pop();
+	if (HISTORY.length) {
+		maybeadd(FUTURE, IMAGE);
+		IMAGE = HISTORY.pop();
+		update();
+	}
+	updo();
+}
+
+function redo(e) {
+	while (FUTURE.length && eq(FUTURE[FUTURE.length - 1], IMAGE)) FUTURE.pop();
+	if (FUTURE.length) {
+		maybeadd(HISTORY, IMAGE);
+		IMAGE = FUTURE.pop();
+		update();
+	}
+	updo();
+}
+
+
 // Handle mouse
 document.oncontextmenu = e => e.target.className === 'preview';
 $("#editor").addEventListener('mousedown', tool);
@@ -243,10 +277,14 @@ $("#editor").addEventListener('mouseleave', e => {
 	MOUSEI = MOUSEJ = null;
 	draw($("#editor"), "#888");
 });
+// $("#editor").addEventListener('mouseup', remember);
+
 
 // Tools
 
 function tool(e) {
+	if (e.type === "mousedown") remember();
+
 	e.stopImmediatePropagation();
 
 	MOUSEI = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
@@ -360,12 +398,14 @@ function paintColor(e) {
 // actions
 
 function neww(e) {
+	remember();
 	$("#name").value = "";
 	IMAGE = IMAGE.map(c => "rgba(0,0,0,0)");
 	update();
 }
 
 function fill(e) {
+	remember();
 	IMAGE = IMAGE.map(c => paintColor(e));
 	update();
 }
