@@ -166,12 +166,15 @@ $("#selected").style.backgroundColor = "black";
 
 
 // Create tools
-for (tt of "paint|flood".split("|")) {
+for (tt of "paint/default|flood/move".split("|")) {
 	let button = $("#tools").appendChild(document.createElement("button"));
+	[tt,cc] = tt.split('/');
 	button.innerText = tt;
 	button.id = tt;
+	button.style.cursor = cc
 	button.addEventListener('click', e => {
 		TOOL = e.target.id;
+		$("#editor").style.cursor = e.target.style.cursor;
 		for (let b of $$("#tools button")) {
 			b.classList[(b.id === TOOL) ? "add" : "remove"]("selected");
 		}
@@ -250,6 +253,7 @@ function update() {
 		option.selected = true;
 	}
 	localStorage.library = JSON.stringify(library);
+	localStorage.last = name;
 }
 
 $("#name").addEventListener("change", update);
@@ -270,6 +274,7 @@ function delet(e) {
 	update();
 }
 
+// Backgrounds
 
 function lite(e) {
 	$("html").style.background = `
@@ -300,8 +305,15 @@ function fill(e) {
 	update();
 }
 
-lite();
-update();
+function initialize() {
+	lite();
+
+	let library = JSON.parse(localStorage.library || '{}');
+	$("#name").value = localStorage.last || "";
+	IMAGE = library[$("#name").value] || IMAGE;
+	update();
+}
+initialize();
 
 </script>
 </body>
