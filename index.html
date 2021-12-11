@@ -21,9 +21,14 @@ canvas {
 	vertical-align: top;
 }
 #palette button {
-	display: block;
-	width: 70px;
-    text-shadow: 1px 0 2px white, -1px 0 2px white, 0 -1px 2px white, 0 1px 2px white;
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+/*    text-shadow: 1px 0 2px white, -1px 0 2px white, 0 -1px 2px white, 0 1px 2px white;*/
+	border: solid 1px #888;
+}
+#palette button.wide {
+	width: 80px;
 }
 button.selected {
 	background-color: "yellow";
@@ -40,7 +45,7 @@ span {
 #selected {
 	width: 50px;
 	height: 50px;
-	border: solid 10px;
+	border: solid 8px;
 	border-color: black;
 }
 .smaller {
@@ -71,6 +76,7 @@ span {
 
 <div class=hbox>
 <div id=palette></div>
+<br>
 <div id=selected>&nbsp;</div>
 </div>
 
@@ -86,10 +92,9 @@ span {
 <canvas class=preview width=64  height=64 ></canvas>
 <br>
 <br>
-background
+<button id=back>background</button>
 <button id=dark>dark</button>
 <button id=lite>lite</button>
-<button id=back>back</button>
 <br>
 <br>
 <button id=neww>new</button>
@@ -146,7 +151,54 @@ for (let button of $$("button")) {
 }
 
 // Create palette
-for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgba(0,0,0,0)".split("|")) {
+for (pal of $$("palette button")) {
+	pal.addEventListener('click', e => {
+		let c = e.target.style.backgroundColor;
+		$("#selected").style.backgroundColor = c;
+	});
+	pal.addEventListener('contextmenu', e => {
+		let c = e.target.style.backgroundColor;
+		$("#selected").style.borderColor = c;
+	});
+}
+let P =
+`#000000 #555555 #AAAAAA #FFFFFF
+#005500 #00AA00 #55FF55 #AAFFAA
+#AA0000 #AA00AA #FF55FF #FFAAAA
+#0000AA #5555FF #00AAAA #55FFFF
+#FF5555 #AA5500 #AAAA00 #FFFF55
+rgba(0,0,0,0)/erase`;
+
+// #f55 #ff5 #5f5 #5ff #55f #f5f
+// #a55 #aa5 #5a5 #5aa #55a #a5a
+// #a00 #aa0 #0a0 #0aa #00a #a0a
+// #500 #550 #050 #055 #005 #505
+
+for (ccc of P.split("\n")) {
+	if ($("#palette").firstChild) {
+		$("#palette").appendChild(document.createElement("br"));
+	}
+	for (color of ccc.split(' ')) {
+		let button = $("#palette").appendChild(document.createElement("button"));
+		button.innerHTML = "&nbsp;";
+		if (color.indexOf('/') >= 0) {
+			button.innerHTML = color.split('/')[1];
+			button.classList.add('wide');
+			color = color.split('/')[0];
+		}
+		button.style.backgroundColor = color;
+		button.addEventListener('click', e => {
+			let c = e.target.style.backgroundColor;
+			$("#selected").style.backgroundColor = c;
+		});
+		button.addEventListener('contextmenu', e => {
+			let c = e.target.style.backgroundColor;
+			$("#selected").style.borderColor = c;
+		});
+	}
+}
+
+if (false) for (cc of "black|grey|silver|white|red|green|blue|cyan|magenta|yellow|erase/rgba(0,0,0,0)".split("|")) {
 	let button = $("#palette").appendChild(document.createElement("button"));
 	cc = cc.split('/');
 	let label = cc.shift();
