@@ -99,7 +99,8 @@ button span { font-size: 10px; }
 <button id=lite>lite</button>
 <br>
 <br>
-<button id=neww>new</button>
+<button class=neww value=16>new <span>16x16</span></button>
+<button class=neww value=24>new <span>24x24</span></button>
 <button id=fill>fill/clear</button>
 <br>
 <br>
@@ -115,7 +116,7 @@ button span { font-size: 10px; }
 function $(s) { return document.querySelector(s); }
 function $$(s) { return document.querySelectorAll(s); }
 
-const floor = Math.floor, min = Math.min, max = Math.max;
+const floor = Math.floor, min = Math.min, max = Math.max, sqrt = Math.sqrt;
 
 let RES = 16;
 let IMAGE = Array(RES * RES).fill().map(() => "rgba(0,0,0,0)");
@@ -124,15 +125,16 @@ let TOOL = 'paint';
 let HISTORY = [];
 let FUTURE = [];
 
+function res() { return floor(sqrt(IMAGE.length)); }
 
 function draw(can, borderStyle) {
 	let ctx = can.getContext('2d');
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-	let dx = ctx.canvas.width / RES;
-	let dy = ctx.canvas.height / RES;
-	for (let index = 0; index < RES * RES; index += 1) {
-		let i = index % RES;
-		let j = floor(index / RES);
+	let dx = ctx.canvas.width / res();
+	let dy = ctx.canvas.height / res();
+	for (let index = 0; index < IMAGE.length; index += 1) {
+		let i = index % res();
+		let j = floor(index / res());
 		ctx.fillStyle = IMAGE[index];
 		ctx.fillRect(i * dx, j * dy, dx, dy);
 		if (borderStyle) {
@@ -152,12 +154,14 @@ function draw(can, borderStyle) {
 
 }
 
-// Button default is to call the function whose name matches the id
+// Button default is to call the function whose name matches the id, or class if no id
 
 for (let button of $$("button")) {
-	if (window[button.id]) {
-		button.addEventListener('click', e => window[e.target.id](e));
-		button.addEventListener('contextmenu', e => window[e.target.id](e));
+	let action = button.id || button.className;
+	if (window[action]) {
+		button.action = window[action];
+		button.addEventListener('click', e => e.target.action(e));
+		button.addEventListener('contextmenu', e => e.target.action(e));
 	}
 }
 
@@ -292,8 +296,8 @@ function tool(e) {
 
 	e.stopImmediatePropagation();
 
-	MOUSEI = min(RES-1, max(0, floor(RES * e.offsetX / e.target.width)));
-	MOUSEJ = min(RES-1, max(0, floor(RES * e.offsetY / e.target.height)));
+	MOUSEI = min(res()-1, max(0, floor(res() * e.offsetX / e.target.width)));
+	MOUSEJ = min(res()-1, max(0, floor(res() * e.offsetY / e.target.height)));
 
 	if (e.which === 0) {
 		draw($("#editor"), "#888");
@@ -307,7 +311,7 @@ function tool(e) {
 
 
 function paint(e) {
-	let index = MOUSEI + MOUSEJ * RES;
+	let index = MOUSEI + MOUSEJ * res();
 	IMAGE[index] = paintColor(e) || IMAGE[index];
 }
 
@@ -315,20 +319,20 @@ function flood(e, i, j, c) {
 	if (i === undefined) {
 		i = MOUSEI;
 		j = MOUSEJ;
-		c = IMAGE[i + j * RES];
+		c = IMAGE[i + j * res()];
 		if (paintColor(e) === c) return; // else infinite recursion
 	}
-	if (c === IMAGE[i + j * RES]) {
-		IMAGE[i + j * RES] = paintColor(e);
-		if (i < RES - 1) flood(e, i + 1, j, c);
-		if (j < RES - 1) flood(e, i, j + 1, c);
+	if (c === IMAGE[i + j * res()]) {
+		IMAGE[i + j * res()] = paintColor(e);
+		if (i < res() - 1) flood(e, i + 1, j, c);
+		if (j < res() - 1) flood(e, i, j + 1, c);
 		if (i > 0)       flood(e, i - 1, j, c);
 		if (j > 0)       flood(e, i, j - 1, c);
 	}
 }
 
 function replace(e) {
-	let old = IMAGE[MOUSEI + RES * MOUSEJ];
+	let old = IMAGE[MOUSEI + res() * MOUSEJ];
 	IMAGE = IMAGE.map(c => c == old ? paintColor(e) : c);
 }
 
@@ -405,7 +409,7 @@ function paintColor(e) {
 function neww(e) {
 	remember();
 	$("#name").value = "";
-	IMAGE = IMAGE.map(c => "rgba(0,0,0,0)");
+	IMAGE = new Array(e.target.value * e.target.value).fill().map(c => "rgba(0,0,0,0)");
 	update();
 }
 
