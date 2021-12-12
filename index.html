@@ -35,7 +35,8 @@ button.selected {
 	border-width: 2px;
 	font-weight: bold;
 }
-span {
+button span { font-size: 10px; }
+#title {
 	margin-bottom: 20px;
 	padding: 3px 5px 3px 12px;
 	letter-spacing: 5px;
@@ -53,13 +54,14 @@ span {
 }
 #tools button {
 	display: block;
+	width: 70px;
 }
 </style>
 </head>
 <body>
 
 <div>
-<span>icon editor</span>
+<span id=title>icon editor</span>
 &middot
 <input id=name></input>
 <select id="library"></select>
@@ -103,6 +105,9 @@ span {
 <br>
 <button id=undo>undo</button>
 <button id=redo>redo</button>
+<br>
+<br>
+<a href="https://github.com/grumdrig/iconedit">source and help</a>
 
 </div>
 
@@ -230,8 +235,8 @@ for (tt of "paint/default|flood/move|replace/cell".split("|")) {
 function eq(a1,a2) { return !(a1 < a2 || a2 < a1); }
 
 function updo() {
-	$("#undo").innerText = `undo (${HISTORY.length})`;
-	$("#redo").innerText = `redo (${FUTURE.length})`;
+	$("#undo").innerHTML = `undo <span>${HISTORY.length}</span>`;
+	$("#redo").innerHTML = `redo <span>${ FUTURE.length}</span>`;
 }
 
 function maybeadd(array, element) {
