@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head>
+<head><meta charset='utf-8'/>
 <title>Icon Editor</title>
 <style>
 	/* Icon editor */
@@ -299,7 +299,7 @@ function tool(e) {
 	MOUSEI = min(res()-1, max(0, floor(res() * e.offsetX / e.target.width)));
 	MOUSEJ = min(res()-1, max(0, floor(res() * e.offsetY / e.target.height)));
 
-	if (e.which === 0) {
+	if (e.buttons === 0) {
 		draw($("#editor"), "#888");
 		return; // mouseover with no mouse buttons down
 	}
